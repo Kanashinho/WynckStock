@@ -1,0 +1,1426 @@
+{
+  "name": "SyncStock v1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "b2bb90b6-d66e-48f6-a062-4aaf0f2f6222",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        0
+      ],
+      "id": "604b2076-1921-4aae-a5f9-b9d2b88fbf7f",
+      "name": "Webhook",
+      "webhookId": "b2bb90b6-d66e-48f6-a062-4aaf0f2f6222"
+    },
+    {
+      "parameters": {
+        "jsCode": "// AJUSTE A LINHA ABAIXO COM O CAMINHO CORRETO DO SEU WEBHOOK OUTPUT\nconst mensagemCompleta = $('Webhook').first().json.body.text.message; // Ou o caminho correto que você encontrou\n\nconst mensagem = mensagemCompleta.toUpperCase().trim();\n\nlet resultado = {\n  comandoOriginal: mensagemCompleta,\n  comandoAnalisado: null,\n  nomeItem: null,\n  quantidade: null, // Para o comando RETIRAR depois\n  erro: null\n};\n\nconst partes = mensagem.split(' ');\nconst primeiroComando = partes[0];\n\nif (primeiroComando === \"ESTOQUE\") {\n  if (partes.length > 1) {\n    resultado.comandoAnalisado = \"ESTOQUE_ITEM\";\n    resultado.nomeItem = partes.slice(1).join(' ').trim();\n  } else {\n    resultado.comandoAnalisado = \"ESTOQUE_GERAL\";\n  }\n} else if (primeiroComando === \"RETIRAR\") {\n  resultado.comandoAnalisado = \"RETIRAR\"; // Placeholder\n  // Adicionar lógica para extrair quantidade e nomeItem para RETIRAR\n  if (partes.length > 2 && !isNaN(partes[1])) { // Verifica se tem pelo menos 3 partes e a segunda é um número\n    resultado.quantidade = parseInt(partes[1]);\n    resultado.nomeItem = partes.slice(2).join(' ').trim();\n  } else {\n    resultado.erro = \"Formato RETIRAR inválido (Ex: RETIRAR 2 ProdutoX)\";\n  }\n} else if (primeiroComando === \"AJUDA\") {\n  resultado.comandoAnalisado = \"AJUDA\";\n} else {\n  resultado.erro = \"Comando desconhecido\";\n  resultado.comandoAnalisado = \"ERRO\"; // Para o nó IF\n}\n\nreturn [resultado]; // Retorna como um array de itens para o n8n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        0
+      ],
+      "id": "fc92d5b2-7621-49d1-bfa1-3b9edc242e16",
+      "name": "Analisar comando"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appzEQZZP4vfJSm1R",
+          "mode": "list",
+          "cachedResultName": "SynckStock",
+          "cachedResultUrl": "https://airtable.com/appzEQZZP4vfJSm1R"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl6LsmSkIAzc387E",
+          "mode": "list",
+          "cachedResultName": "Inventory",
+          "cachedResultUrl": "https://airtable.com/appzEQZZP4vfJSm1R/tbl6LsmSkIAzc387E"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        320,
+        0
+      ],
+      "id": "dcea4c0a-9b66-4dcb-a6e3-0613b60165d0",
+      "name": "Consulta de estoque",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "yabYrR4l9OE2GUUf",
+          "name": "Airtable SynckStock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "625cd07f-704e-41b0-ad64-2ca79857bd0f",
+              "name": "MensagemResposta",
+              "value": "=ℹ️ Estoque de {{ $json.item_name }}: {{ $json.estoque_atual }} unidades. (Limite mínimo: {{ $json.limite_baixo_estoque }} unidades).",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1980,
+        -520
+      ],
+      "id": "65426f9f-b651-46ce-a914-db874c2d826d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "92a3746d-52e6-4bbc-b595-237cdf6c0695",
+              "name": "MensagemResposta",
+              "value": "=🤔 Hum... não encontrei o item \"{{ $('Analisar comando').item.json.nomeItem }}\" na sua base. Verifique se o nome está digitado corretamente ou use ESTOQUE para ver todos os itens.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1980,
+        -280
+      ],
+      "id": "666c2eff-a3e1-47fa-8e9f-9d11b6bc726e",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "numberInputs": 8
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        3560,
+        -80
+      ],
+      "id": "7cf906ee-91a1-422d-ae9d-e4a48bcd34c5",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appzEQZZP4vfJSm1R",
+          "mode": "list",
+          "cachedResultName": "SynckStock",
+          "cachedResultUrl": "https://airtable.com/appzEQZZP4vfJSm1R"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl6LsmSkIAzc387E",
+          "mode": "list",
+          "cachedResultName": "Inventory",
+          "cachedResultUrl": "https://airtable.com/appzEQZZP4vfJSm1R/tbl6LsmSkIAzc387E"
+        },
+        "filterByFormula": "=LOWER({item_name}) = LOWER(\"{{ $json.nomeItem }}\")",
+        "returnAll": false,
+        "limit": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1200,
+        -340
+      ],
+      "id": "f7fb6508-6816-4072-b3fc-7892454c3073",
+      "name": "Airtable_BuscarItemEspecifico",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "yabYrR4l9OE2GUUf",
+          "name": "Airtable SynckStock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f0002e21-257d-4a2b-87e7-77da1ac715fb",
+              "leftValue": "={{ $json['id Numerico'] }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1620,
+        -340
+      ],
+      "id": "20c53523-2f5e-470c-bcee-7d9a92214ac5",
+      "name": "Item existe?",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ea024f8f-174f-4b0b-a011-36a72cbbc37a",
+              "name": "Usuario",
+              "value": "={{ $json.body.senderName }}",
+              "type": "string"
+            },
+            {
+              "id": "bb60a0a7-9157-424f-a362-cc2578ea1243",
+              "name": "UsuarioWhats",
+              "value": "={{ $json.body.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "a399375d-bc8e-4292-bde5-323fcd74453c",
+              "name": "Mensagem",
+              "value": "={{ $json.body.text.message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        80,
+        0
+      ],
+      "id": "507b13be-9d19-462b-b855-ba0bd0366fe2",
+      "name": "Simplificando dados"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3E154A2FE6F8D0414D376260F2C0F8BD/token/E5702899BAF7570059542697/send-text",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "=22981439260"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.MensagemResposta }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3940,
+        20
+      ],
+      "id": "db3ebc28-c3ac-4510-92a4-bc3a16f277d1",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "5aD1kKauyQBVq5Lh",
+          "name": "Z-api"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.comandoAnalisado }}",
+                    "rightValue": "ESTOQUE_ITEM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "933a2e2a-4d48-465e-8a16-46479ba9ddda"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Comando_Item"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "90fc9d0e-e012-4fcb-87c5-94ce39e8c098",
+                    "leftValue": "={{ $json.comandoAnalisado }}",
+                    "rightValue": "ESTOQUE_GERAL",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ESTOQUE_GERAL"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "437dac6a-2298-4063-820a-cbadae1678e2",
+                    "leftValue": "={{ $json.comandoAnalisado }}",
+                    "rightValue": "AJUDA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "AJUDA"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6b73d24e-969e-4658-8fdf-57d1247ad7ff",
+                    "leftValue": "={{ $json.comandoAnalisado }}",
+                    "rightValue": "RETIRAR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "RETIRAR"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        860,
+        -20
+      ],
+      "id": "dc6430a1-66f2-4eef-a61f-f7000aefe1db",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appzEQZZP4vfJSm1R",
+          "mode": "list",
+          "cachedResultName": "SynckStock",
+          "cachedResultUrl": "https://airtable.com/appzEQZZP4vfJSm1R"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl6LsmSkIAzc387E",
+          "mode": "list",
+          "cachedResultName": "Inventory",
+          "cachedResultUrl": "https://airtable.com/appzEQZZP4vfJSm1R/tbl6LsmSkIAzc387E"
+        },
+        "filterByFormula": "{estoque_atual} <= {limite_baixo_estoque}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1200,
+        -60
+      ],
+      "id": "73a66c84-7f80-40a5-bac7-0586250bbe76",
+      "name": "Airtable_BuscarEstoqueBaixo",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "yabYrR4l9OE2GUUf",
+          "name": "Airtable SynckStock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "132cac34-5ef4-49b0-8516-b67d8424a7fd",
+              "leftValue": "={{ $json['id Numerico'] }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1620,
+        -20
+      ],
+      "id": "35e955ab-9c42-4f06-ad56-a9b065c3e31d",
+      "name": "Existem Itens Baixos?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Este nó recebe uma LISTA de itens do nó Airtable anterior\n// que passaram pelo filtro do IF (ou seja, são itens reais com ID)\n\nconst itensDeEntrada = items; \nlet listaItensTexto = \"\";\n\nif (itensDeEntrada && itensDeEntrada.length > 0) {\n    for (const itemEntrada of itensDeEntrada) {\n        // Ajuste o caminho abaixo se a estrutura da sua entrada for diferente.\n        // Verifique a saída do nó que ALIMENTA este nó \"Formatar Msg Estoque Baixo\".\n        const fields = itemEntrada.json.fields || itemEntrada.json; \n\n        if (fields) {\n            const nome = fields.item_name;\n            const atual = fields.estoque_atual;\n            const minimo = fields.limite_baixo_estoque;\n            const unidade = fields.unidade || 'un'; // Usa 'un' como padrão se unidade estiver vazia\n\n            if (nome !== undefined && atual !== undefined && minimo !== undefined) {\n                 // LINHA CRÍTICA - Garanta que está exatamente assim:\n                 listaItensTexto += `- ${nome}: ${atual} ${unidade} (Mín:${minimo})\\n`;\n            } else {\n                // console.log(\"Item com campos essenciais em falta:\", fields);\n            }\n        } else {\n            // console.log(\"Item de entrada sem o objeto 'fields' esperado:\", itemEntrada.json);\n        }\n    }\n}\n\n// ***** IMPORTANTE: Substitua pelo link real e compartilhável da sua tabela Inventory no Airtable *****\nconst linkPlanilhaAirtable = \"https://SEU_LINK_COMPARTILHAVEL_AIRTABLE_AQUI\"; \n\nlet mensagemFinal = \"\";\n\nif (listaItensTexto) { // Se a lista de itens baixos (listaItensTexto) não estiver vazia\n    mensagemFinal = `⚠️ Estoque Baixo:\\n${listaItensTexto}\\nPara detalhes: ESTOQUE <Nome Item>\\nLista completa: ${linkPlanilhaAirtable}`;\n} else {\n    // Este caminho só seria atingido se o nó IF anterior permitisse que este nó executasse sem itens.\n    // Com a lógica correta do IF, este 'else' não é estritamente necessário aqui.\n    mensagemFinal = `✅ Nenhum item encontrado com estoque baixo.\\n\\nPara detalhes: ESTOQUE <Nome Item>\\nLista completa: ${linkPlanilhaAirtable}`;\n}\n\nreturn [{ json: { mensagemResposta: mensagemFinal } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        -100
+      ],
+      "id": "d221c4f5-0a8c-4bcb-9d31-a44d9e88977e",
+      "name": "Formatar Msg Estoque Baixo"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a2242dd7-2e4d-48c7-9c33-911ef6ff5c53",
+              "name": "mensagemResposta",
+              "value": "✅ Nenhum item abaixo do estoque mínimo!  Para detalhes: ESTOQUE <Nome Item> Lista completa: [SEU_LINK_AIRTABLE_INVENTORY]",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1980,
+        100
+      ],
+      "id": "9d485e80-8cf4-476d-b143-1708d71a4a7e",
+      "name": "Montar Msg Sem Itens Baixos"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5d7b33a3-bdb8-426f-9638-bc0782cec2a0",
+              "name": "AJUDA",
+              "value": "🆘 Comandos do SyncStock:\\n\\n*Para dar baixa:*\\nRETIRAR <Qtd> <Nome do Item>\\n(Ex: RETIRAR 3 Caneta Azul)\\n\\n*Para consultar um item:*\\nESTOQUE <Nome do Item>\\n(Ex: ESTOQUE Caneta Azul)\\n\\n*Para ver itens com estoque baixo (ou lista completa na planilha):*\\nESTOQUE\\n\\n*Para ver esta ajuda:*\\nAJUDA\\n\\nLembrete: Não diferencia maiúsculas/minúsculas nos comandos!",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1200,
+        240
+      ],
+      "id": "13282767-302a-4355-a4e0-f09254d4f961",
+      "name": "AJUDA"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "eca5fcc9-3b69-464d-8823-5a83d34d4d38",
+              "leftValue": "={{ $('Airtable_BuscarItemParaRetirada').item.json['id Numerico'] }}",
+              "rightValue": {},
+              "operator": {
+                "type": "number",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "0d718d31-5b3f-4f3a-92b6-2c9a8aecc8e5",
+              "leftValue": "={{ $('Analisar comando').item.json.quantidade }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "ea58b47d-64bb-45e0-a9b3-c40fb62b98ce",
+              "leftValue": "={{ $('Airtable_BuscarItemParaRetirada').item.json.estoque_atual }}",
+              "rightValue": "={{ $('Analisar comando').item.json.quantidade }}",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1640,
+        400
+      ],
+      "id": "f45ee24d-df36-4457-acf4-4e9fbe5aa6d0",
+      "name": "Pode Retirar?"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appzEQZZP4vfJSm1R",
+          "mode": "list",
+          "cachedResultName": "SynckStock",
+          "cachedResultUrl": "https://airtable.com/appzEQZZP4vfJSm1R"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl6LsmSkIAzc387E",
+          "mode": "list",
+          "cachedResultName": "Inventory",
+          "cachedResultUrl": "https://airtable.com/appzEQZZP4vfJSm1R/tbl6LsmSkIAzc387E"
+        },
+        "filterByFormula": "=LOWER({item_name}) = LOWER(\"{{ $json.nomeItem }}\")",
+        "returnAll": false,
+        "limit": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1200,
+        480
+      ],
+      "id": "5e3fe437-a402-44fe-b368-3dbb0e43c841",
+      "name": "Airtable_BuscarItemParaRetirada",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "yabYrR4l9OE2GUUf",
+          "name": "Airtable SynckStock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ea18e5f8-e4f1-4508-974d-fc469a85d11a",
+              "name": "Estoque_Calculado",
+              "value": "={{ $('Airtable_BuscarItemParaRetirada').item.json.estoque_atual - $('Analisar comando').item.json.quantidade }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1980,
+        380
+      ],
+      "id": "af2fdfd4-ae8b-44f5-b25c-ebb7992bc938",
+      "name": "novo_estoque_calculado"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appzEQZZP4vfJSm1R",
+          "mode": "list",
+          "cachedResultName": "SynckStock",
+          "cachedResultUrl": "https://airtable.com/appzEQZZP4vfJSm1R"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl6LsmSkIAzc387E",
+          "mode": "list",
+          "cachedResultName": "Inventory",
+          "cachedResultUrl": "https://airtable.com/appzEQZZP4vfJSm1R/tbl6LsmSkIAzc387E"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "estoque_atual": "={{ $('novo_estoque_calculado').item.json.Estoque_Calculado }}",
+            "id": "={{ $('Airtable_BuscarItemParaRetirada').item.json.id }}",
+            "ultima_atualizacao": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "item_name",
+              "displayName": "item_name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "estoque_atual",
+              "displayName": "estoque_atual",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "limite_baixo_estoque",
+              "displayName": "limite_baixo_estoque",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "unidade",
+              "displayName": "unidade",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "un",
+                  "value": "un"
+                },
+                {
+                  "name": "L",
+                  "value": "L"
+                },
+                {
+                  "name": "resma",
+                  "value": "resma"
+                },
+                {
+                  "name": "kg",
+                  "value": "kg"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "categoria",
+              "displayName": "categoria",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Papelaria",
+                  "value": "Papelaria"
+                },
+                {
+                  "name": "Mercearia",
+                  "value": "Mercearia"
+                },
+                {
+                  "name": "Bebidas",
+                  "value": "Bebidas"
+                },
+                {
+                  "name": "Limpeza",
+                  "value": "Limpeza"
+                },
+                {
+                  "name": "Padaria",
+                  "value": "Padaria"
+                },
+                {
+                  "name": "Laticínios",
+                  "value": "Laticínios"
+                },
+                {
+                  "name": "Elétrica",
+                  "value": "Elétrica"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "ultima_atualizacao",
+              "displayName": "ultima_atualizacao",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2280,
+        380
+      ],
+      "id": "b3cb20e1-d281-4fd7-b771-6c2fa7255991",
+      "name": "Airtable_AtualizarEstoqueRetirada",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "yabYrR4l9OE2GUUf",
+          "name": "Airtable SynckStock"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3328fb64-2381-4f5b-96ac-f90c1538995f",
+              "name": "Montar Msg Retirada Sucesso",
+              "value": "=✅ Retirada realizada! Item: {{ $json.fields.item_name }} | Quantidade retirada: {{ $('Analisar comando').item.json.quantidade }} | Estoque atualizado: {{ $json.fields.estoque_atual }} {{ $json.fields.unidade || 'unidades' }}.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2520,
+        380
+      ],
+      "id": "bb940259-f53e-448c-a9ec-9467318da56d",
+      "name": "Montar Msg Retirada Sucesso\""
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f17aa63d-2663-4907-84ae-a7e6f05e91c6",
+              "leftValue": "={{ $('Airtable_AtualizarEstoqueRetirada').item.json.fields.estoque_atual }}",
+              "rightValue": "={{ $('Airtable_BuscarItemParaRetirada').item.json.limite_baixo_estoque }}",
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2720,
+        380
+      ],
+      "id": "9e932043-c0b4-4683-94b0-6f59e72a071c",
+      "name": "Verificar Estoque Baixo Pós-Retirada"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4e353e3d-a98b-4e9c-b127-87c08a8e62cc",
+              "name": "MensagemAlertaGrupo",
+              "value": "=MensagemAlertaGrupo: ⚠️ ALERTA DE ESTOQUE BAIXO! ⚠️\\n\\nItem: {{ $('Airtable_AtualizarEstoqueRetirada').item.json.fields.item_name }}\\nEstoque Atual: {{ $('Airtable_AtualizarEstoqueRetirada').item.json.fields.estoque_atual }} {{ $('Airtable_AtualizarEstoqueRetirada').item.json.fields.unidade || 'un' }}\\nMínimo Recomendado: {{ $('Airtable_BuscarItemParaRetirada').item.json.limite_baixo_estoque }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3020,
+        180
+      ],
+      "id": "be57467d-d5b6-4904-ba11-8758ad0dfc58",
+      "name": "MensagemAlertaGrupo"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c7f6bdd3-4347-47f0-95e5-840f5e1f0b71",
+              "leftValue": "={{ $('Airtable_BuscarItemParaRetirada').item.json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1980,
+        720
+      ],
+      "id": "bc836f5d-2ba5-44d0-9675-bc2c0f3f6e33",
+      "name": "IF_ItemNaoEncontrado_Retirada"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cf2b3601-5357-485f-a462-ba17cada178f",
+              "name": "MensagemResposta",
+              "value": "=🤔 Hum... não encontrei o item \"{{ $('Analisar comando').item.json.nomeItem }}\" para retirada.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2280,
+        700
+      ],
+      "id": "7b61d2f5-65c6-4a78-a961-2cd37153d3ae",
+      "name": "Set_MsgErro_ItemNaoEncontrado_Retirada"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6a7c92e6-09e4-42a6-892c-a18e59c2114a",
+              "leftValue": "={{ $('Analisar comando').item.json.quantidade }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2280,
+        960
+      ],
+      "id": "0344795f-5b6c-4ad5-97e2-ce6bbf0dccb8",
+      "name": "IF_QtdeInvalida_Retirada"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f8fd753a-9fc7-4b98-a94c-26dea8c60b2f",
+              "name": "MensagemResposta",
+              "value": "⚠️ A quantidade para RETIRAR precisa ser um número positivo.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2660,
+        840
+      ],
+      "id": "b6462edf-f5b4-4dde-894a-527b9bd44af5",
+      "name": "Set_MsgErro_QtdeInvalida_Retirada"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4fae423b-ab3f-4f59-bf41-e5fb8165898a",
+              "name": "MensagemResposta",
+              "value": "=😬 Ops! Não há estoque suficiente de \"{{ $('Airtable_BuscarItemParaRetirada').item.json.item_name }}\". Você tem apenas {{ $('Airtable_BuscarItemParaRetirada').item.json.estoque_atual }} {{ $('Airtable_BuscarItemParaRetirada').item.json.unidade || 'unidades' }}.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2660,
+        1040
+      ],
+      "id": "1828bc6e-e3d5-4605-b7ae-621a263900a2",
+      "name": "Set_MsgErro_EstoqueInsuficiente_Retirada"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        3080,
+        720
+      ],
+      "id": "e36d2b6e-eba3-4435-9316-35ea63aa8cda",
+      "name": "Msg_Erro"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Simplificando dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta de estoque": {
+      "main": [
+        [
+          {
+            "node": "Analisar comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analisar comando": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Airtable_BuscarItemEspecifico": {
+      "main": [
+        [
+          {
+            "node": "Item existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Item existe?": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simplificando dados": {
+      "main": [
+        [
+          {
+            "node": "Consulta de estoque",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Airtable_BuscarItemEspecifico",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable_BuscarEstoqueBaixo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AJUDA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable_BuscarItemParaRetirada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable_BuscarEstoqueBaixo": {
+      "main": [
+        [
+          {
+            "node": "Existem Itens Baixos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Existem Itens Baixos?": {
+      "main": [
+        [
+          {
+            "node": "Formatar Msg Estoque Baixo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Montar Msg Sem Itens Baixos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Msg Estoque Baixo": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Montar Msg Sem Itens Baixos": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "AJUDA": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Airtable_BuscarItemParaRetirada": {
+      "main": [
+        [
+          {
+            "node": "Pode Retirar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pode Retirar?": {
+      "main": [
+        [
+          {
+            "node": "novo_estoque_calculado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF_ItemNaoEncontrado_Retirada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "novo_estoque_calculado": {
+      "main": [
+        [
+          {
+            "node": "Airtable_AtualizarEstoqueRetirada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable_AtualizarEstoqueRetirada": {
+      "main": [
+        [
+          {
+            "node": "Montar Msg Retirada Sucesso\"",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Msg Retirada Sucesso\"": {
+      "main": [
+        [
+          {
+            "node": "Verificar Estoque Baixo Pós-Retirada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Estoque Baixo Pós-Retirada": {
+      "main": [
+        [
+          {
+            "node": "MensagemAlertaGrupo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 6
+          }
+        ]
+      ]
+    },
+    "IF_ItemNaoEncontrado_Retirada": {
+      "main": [
+        [
+          {
+            "node": "Set_MsgErro_ItemNaoEncontrado_Retirada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF_QtdeInvalida_Retirada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF_QtdeInvalida_Retirada": {
+      "main": [
+        [
+          {
+            "node": "Set_MsgErro_QtdeInvalida_Retirada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set_MsgErro_EstoqueInsuficiente_Retirada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set_MsgErro_QtdeInvalida_Retirada": {
+      "main": [
+        [
+          {
+            "node": "Msg_Erro",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Set_MsgErro_ItemNaoEncontrado_Retirada": {
+      "main": [
+        [
+          {
+            "node": "Msg_Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set_MsgErro_EstoqueInsuficiente_Retirada": {
+      "main": [
+        [
+          {
+            "node": "Msg_Erro",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Msg_Erro": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 7
+          }
+        ]
+      ]
+    },
+    "MensagemAlertaGrupo": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "52c041d9-9a82-4300-9518-a607a78dab8e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "99eb3e7b66a7dd3a708e09cecd3ea655ebfd745346e95d6b1bd404d468ea24a8"
+  },
+  "id": "GeGNJvbBqwt4vYsS",
+  "tags": []
+}
